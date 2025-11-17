@@ -11,24 +11,26 @@ export async function GET(
 
   const url = `${origin}/@${params.store}`;
 
+  // Create PDF
   const pdf = await PDFDocument.create();
   const page = pdf.addPage([595, 842]);
 
   // Title
+  const font = await pdf.embedFont(StandardFonts.HelveticaBold);
   page.drawText("SELLSMART STORE QR", {
-    x: 180,
+    x: 160,
     y: 790,
     size: 24,
-    font: await pdf.embedFont(StandardFonts.HelveticaBold),
+    font,
   });
 
-  // QR code
+  // QR Code
   const qrData = await QRCode.toDataURL(url);
   const qrImage = await pdf.embedPng(qrData);
 
   page.drawImage(qrImage, {
     x: 170,
-    y: 440,
+    y: 450,
     width: 250,
     height: 250,
   });
