@@ -1,7 +1,7 @@
 // @ts-nocheck
 
 import QRCode from "qrcode";
-import type { NextRequest } from "next/server";
+import { NextRequest } from "next/server";
 
 export async function GET(
   req: NextRequest,
