@@ -14,6 +14,7 @@ export async function GET(
   const pdf = await PDFDocument.create();
   const page = pdf.addPage([595, 842]);
 
+  // Title
   page.drawText("SELLSMART STORE QR", {
     x: 180,
     y: 790,
@@ -21,6 +22,7 @@ export async function GET(
     font: await pdf.embedFont(StandardFonts.HelveticaBold),
   });
 
+  // QR code
   const qrData = await QRCode.toDataURL(url);
   const qrImage = await pdf.embedPng(qrData);
 
