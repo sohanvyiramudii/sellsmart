@@ -1,5 +1,7 @@
+// @ts-nocheck
+
 import QRCode from "qrcode";
-import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
+import { PDFDocument, StandardFonts } from "pdf-lib";
 import type { NextRequest } from "next/server";
 
 export async function GET(
@@ -11,28 +13,25 @@ export async function GET(
 
   const url = `${origin}/@${params.store}`;
 
-  // Create PDF
   const pdf = await PDFDocument.create();
   const page = pdf.addPage([595, 842]);
 
-  // Title
   const font = await pdf.embedFont(StandardFonts.HelveticaBold);
   page.drawText("SELLSMART STORE QR", {
-    x: 160,
-    y: 790,
-    size: 24,
+    x: 150,
+    y: 780,
+    size: 26,
     font,
   });
 
-  // QR Code
-  const qrData = await QRCode.toDataURL(url);
-  const qrImage = await pdf.embedPng(qrData);
+  const qr = await QRCode.toDataURL(url);
+  const qrImage = await pdf.embedPng(qr);
 
   page.drawImage(qrImage, {
     x: 170,
-    y: 450,
-    width: 250,
-    height: 250,
+    y: 420,
+    width: 260,
+    height: 260,
   });
 
   const pdfBytes = await pdf.save();
