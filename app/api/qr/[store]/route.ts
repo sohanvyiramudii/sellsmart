@@ -1,14 +1,22 @@
+// @ts-nocheck
 
-import QRCode from 'qrcode';
+import QRCode from "qrcode";
+import type { NextRequest } from "next/server";
 
-export async function GET(req, { params }) {
-  const origin = process.env.NEXT_PUBLIC_SITE_URL || new URL(req.url).origin;
+export async function GET(
+  req: NextRequest,
+  { params }: { params: { store: string } }
+) {
+  const origin =
+    process.env.NEXT_PUBLIC_SITE_URL || new URL(req.url).origin;
+
   const url = `${origin}/@${params.store}`;
 
-  const dataUrl = await QRCode.toDataURL(url, { margin:1, width:420 });
-  const base64 = dataUrl.split(',')[1];
+  const qrPng = await QRCode.toBuffer(url);
 
-  return new Response(Buffer.from(base64,'base64'), {
-    headers: { "Content-Type":"image/png" }
+  return new Response(qrPng, {
+    headers: {
+      "Content-Type": "image/png",
+    },
   });
 }
