@@ -1,0 +1,11 @@
+
+SELLSMART — Setup Guide (quick)
+
+1) Open .env.local and set SUPABASE_SERVICE_ROLE_KEY and RAZORPAY keys.
+2) In Supabase: create buckets (public): product-images, store-profile, store-banner
+3) In Supabase Auth > Settings: set Site URL: http://localhost:3000 and Redirect URLs: http://localhost:3000
+4) Run: npm install
+5) Run: npm run dev
+6) Create account via /auth/signup
+7) Approve created store via /admin (logged in as admin email)
+8) Test store at /@storeSlug, place test Razorpay order.
