@@ -10,27 +10,24 @@ export async function GET(
     const storeUrl = `${origin}/@${params.store}`;
     const storeName = params.store;
 
-    // Create PDF
     const pdfDoc = await PDFDocument.create();
     const page = pdfDoc.addPage([600, 400]);
-    const { width, height } = page.getSize();
     const font = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+    const { width, height } = page.getSize();
 
-    // Draw Store Name
     page.drawText(`Store: ${storeName}`, {
       x: 50,
       y: height - 100,
       size: 30,
-      font: font,
+      font,
       color: rgb(0, 0, 0),
     });
 
-    // Draw URL
     page.drawText(storeUrl, {
       x: 50,
       y: height - 150,
       size: 18,
-      font: font,
+      font,
       color: rgb(0, 0, 1),
     });
 
