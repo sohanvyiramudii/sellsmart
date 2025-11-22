@@ -1,25 +1,28 @@
-import { cookies } from "next/headers";
 import { createServerComponentClient } from "@supabase/auth-helpers-nextjs";
+import { cookies } from "next/headers";
+import Link from "next/link";
 
-export default async function StorePage({ params }) {
+export default async function StorePage({
+  params,
+}: {
+  params: { slug: string };
+}) {
   const slug = params.slug.replace(/^@/, "");
 
-  // Server-side Supabase client
   const supabase = createServerComponentClient({ cookies });
 
-  // Fetch creator
-  const { data: creator, error: creatorError } = await supabase
+  // Load creator
+  const { data: creators } = await supabase
     .from("creators")
     .select("*")
     .eq("store_slug", slug)
-    .eq("is_active", true)
-    .single();
+    .limit(1);
 
-  if (creatorError || !creator) {
-    return <div style={{ padding: 40 }}>Store not found or not approved.</div>;
-  }
+  const creator = creators?.[0];
 
-  // Fetch products
+  if (!creator) return <div>Store not found</div>;
+
+  // Load products
   const { data: products } = await supabase
     .from("products")
     .select("*")
@@ -27,82 +30,36 @@ export default async function StorePage({ params }) {
     .order("created_at", { ascending: false });
 
   return (
-    <div style={{ maxWidth: 900, margin: "0 auto", padding: 16 }}>
-      {/* Banner */}
-      {creator.banner_url && (
-        <img
-          src={creator.banner_url}
-          style={{
-            width: "100%",
-            height: 260,
-            objectFit: "cover",
-            borderRadius: 12,
-          }}
-        />
-      )}
+    <div className="container" style={{ padding: 20 }}>
+      <h1>@{creator.store_slug}</h1>
+      <p>{creator.bio || "No description available."}</p>
 
-      {/* Header */}
-      <div style={{ display: "flex", gap: 16, marginTop: 16 }}>
-        {creator.image_url ? (
-          <img
-            src={creator.image_url}
-            style={{
-              width: 90,
-              height: 90,
-              borderRadius: "50%",
-              objectFit: "cover",
-            }}
-          />
-        ) : (
-          <div
-            style={{
-              width: 90,
-              height: 90,
-              borderRadius: "50%",
-              background: "#EEE",
-            }}
-          />
-        )}
-
-        <div>
-          <h1 style={{ fontSize: 24, fontWeight: 800 }}>{creator.name}</h1>
-          <div style={{ color: "#666" }}>📍 {creator.location}</div>
-          <p style={{ marginTop: 8 }}>{creator.bio}</p>
-        </div>
-      </div>
-
-      {/* Products */}
+      <h2 style={{ marginTop: 24 }}>Products</h2>
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-          gap: 16,
-          marginTop: 24,
+          gap: 12,
+          gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))",
+          marginTop: 12,
         }}
       >
-        {(products || []).map((p) => (
-          <div
-            key={p.id}
-            style={{
-              background: "#fff",
-              padding: 12,
-              borderRadius: 12,
-              boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
-            }}
-          >
+        {products?.map((p) => (
+          <div key={p.id} className="card" style={{ padding: 12 }}>
             {p.image_url && (
               <img
                 src={p.image_url}
                 style={{
                   width: "100%",
-                  height: 150,
+                  height: 140,
                   objectFit: "cover",
                   borderRadius: 8,
                 }}
               />
             )}
-            <h3 style={{ marginTop: 8, fontWeight: 700 }}>{p.name}</h3>
-            <div style={{ color: "#7A55E2", fontWeight: 800 }}>₹{p.price}</div>
+            <h3>{p.name}</h3>
+            <div style={{ color: "#7A55E2", fontWeight: 700 }}>
+              ₹{p.price}
+            </div>
           </div>
         ))}
       </div>
