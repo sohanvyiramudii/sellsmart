@@ -1,17 +1,15 @@
-import { createServerComponentClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
-import Link from "next/link";
+import { createServerComponentClient } from "@supabase/auth-helpers-nextjs";
 
 export default async function StorePage({
   params,
 }: {
   params: { slug: string };
 }) {
-  const slug = params.slug.replace(/^@/, "");
-
   const supabase = createServerComponentClient({ cookies });
 
-  // Load creator
+  const slug = params.slug.replace(/^@/, "");
+
   const { data: creators } = await supabase
     .from("creators")
     .select("*")
@@ -20,9 +18,10 @@ export default async function StorePage({
 
   const creator = creators?.[0];
 
-  if (!creator) return <div>Store not found</div>;
+  if (!creator) {
+    return <div>Store not found</div>;
+  }
 
-  // Load products
   const { data: products } = await supabase
     .from("products")
     .select("*")
@@ -30,17 +29,18 @@ export default async function StorePage({
     .order("created_at", { ascending: false });
 
   return (
-    <div className="container" style={{ padding: 20 }}>
+    <div>
       <h1>@{creator.store_slug}</h1>
-      <p>{creator.bio || "No description available."}</p>
+      <p>{creator.bio || "No description provided."}</p>
 
-      <h2 style={{ marginTop: 24 }}>Products</h2>
+      <h2 style={{ marginTop: 20 }}>Products</h2>
+
       <div
         style={{
+          marginTop: 16,
           display: "grid",
-          gap: 12,
+          gap: 14,
           gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))",
-          marginTop: 12,
         }}
       >
         {products?.map((p) => (
@@ -56,10 +56,9 @@ export default async function StorePage({
                 }}
               />
             )}
+
             <h3>{p.name}</h3>
-            <div style={{ color: "#7A55E2", fontWeight: 700 }}>
-              ₹{p.price}
-            </div>
+            <p style={{ fontWeight: "bold", color: "#7A55E2" }}>₹{p.price}</p>
           </div>
         ))}
       </div>

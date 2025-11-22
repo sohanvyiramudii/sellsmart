@@ -1,11 +1,6 @@
-
-import { cookies } from 'next/headers';
-import { createServerComponentClient, createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
-
-export function serverComponentSupabase() {
-  return createServerComponentClient({ cookies });
-}
+import { cookies } from "next/headers";
+import { createServerComponentClient } from "@supabase/auth-helpers-nextjs";
 
 export function routeSupabase() {
-  return createRouteHandlerClient({ cookies });
+  return createServerComponentClient({ cookies });
 }

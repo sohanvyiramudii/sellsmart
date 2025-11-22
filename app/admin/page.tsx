@@ -1,61 +1,69 @@
-"use client";
+import { cookies } from "next/headers";
+import { createServerComponentClient } from "@supabase/auth-helpers-nextjs";
 
-import { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabaseClient";
+export default async function AdminPage() {
+  const supabase = createServerComponentClient({ cookies });
 
-export default function AdminPage() {
-  const [pending, setPending] = useState<any[]>([]);
+  const { data: session } = await supabase.auth.getUser();
+  const user = session.user;
 
-  useEffect(() => {
-    (async () => {
-      const { data: p } = await supabase
-        .from("creators")
-        .select("*")
-        .eq("is_active", false)
-        .order("created_at", { ascending: false });
+  if (!user || user.email !== process.env.NEXT_PUBLIC_ADMIN_EMAIL)
+    return <div>Unauthorized</div>;
 
-      setPending(p || []);
-    })();
-  }, []);
-
-  async function approve(id: string) {
-    await supabase.from("creators").update({ is_active: true }).eq("id", id);
-    setPending((prev) => prev.filter((x) => x.id !== id));
-    alert("Approved ✔");
-  }
-
-  async function remove(id: string) {
-    await supabase.from("creators").delete().eq("id", id);
-    setPending((prev) => prev.filter((x) => x.id !== id));
-    alert("Removed");
-  }
+  const { data: creators } = await supabase
+    .from("creators")
+    .select("*")
+    .order("created_at", { ascending: false });
 
   return (
-    <div className="container" style={{ padding: 20 }}>
-      <h1 style={{ fontSize: 30, fontWeight: 800 }}>Admin Panel</h1>
-      <p>Pending Creator Approvals</p>
+    <div>
+      <h1>Admin Panel</h1>
 
-      <div style={{ display: "grid", gap: 12, marginTop: 20 }}>
-        {pending.map((c) => (
-          <div key={c.id} className="card" style={{ padding: 16 }}>
-            <h2 style={{ fontWeight: 700 }}>{c.name}</h2>
-            <div>Slug: @{c.store_slug}</div>
-            <div>Location: {c.location}</div>
+      <h2 style={{ marginTop: 20 }}>Creator Approvals</h2>
 
-            <div style={{ marginTop: 10, display: "flex", gap: 10 }}>
-              <button className="btn btn-primary" onClick={() => approve(c.id)}>
+      <div style={{ marginTop: 20, display: "grid", gap: 14 }}>
+        {creators?.map((c) => (
+          <div key={c.id} className="card">
+            <strong>{c.name}</strong> — @{c.store_slug}
+            <br />
+            Status:{" "}
+            <span style={{ color: c.is_active ? "green" : "orange" }}>
+              {c.is_active ? "Active" : "Pending"}
+            </span>
+            <br />
+            <br />
+
+            {!c.is_active && (
+              <button
+                className="btn-primary"
+                onClick={async () => {
+                  await fetch("/api/admin/approve", {
+                    method: "POST",
+                    body: JSON.stringify({ id: c.id }),
+                  });
+                  location.reload();
+                }}
+              >
                 Approve
               </button>
-              <button className="btn" onClick={() => remove(c.id)}>
-                Remove
+            )}
+
+            {c.is_active && (
+              <button
+                className="btn"
+                onClick={async () => {
+                  await fetch("/api/admin/suspend", {
+                    method: "POST",
+                    body: JSON.stringify({ id: c.id }),
+                  });
+                  location.reload();
+                }}
+              >
+                Suspend
               </button>
-            </div>
+            )}
           </div>
         ))}
-
-        {pending.length === 0 && (
-          <p style={{ opacity: 0.6 }}>No pending creators.</p>
-        )}
       </div>
     </div>
   );

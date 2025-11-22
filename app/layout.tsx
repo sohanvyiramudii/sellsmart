@@ -1,7 +1,7 @@
 import "./globals.css";
 import Link from "next/link";
-import { createServerComponentClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
+import { createServerComponentClient } from "@supabase/auth-helpers-nextjs";
 import Logo from "@/components/Logo";
 
 export const metadata = {
@@ -15,18 +15,16 @@ export default async function RootLayout({
   children: React.ReactNode;
 }) {
   const supabase = createServerComponentClient({ cookies });
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { data } = await supabase.auth.getUser();
+  const user = data.user;
 
   return (
     <html lang="en">
       <body>
-        {/* HEADER */}
         <header
           style={{
             background: "#fff",
-            borderBottom: "1px solid rgba(0,0,0,0.05)",
+            borderBottom: "1px solid rgba(0,0,0,0.08)",
           }}
         >
           <div
@@ -34,19 +32,18 @@ export default async function RootLayout({
             style={{
               display: "flex",
               alignItems: "center",
-              gap: 12,
-              padding: "12px 0",
+              gap: 16,
+              padding: "14px 0",
             }}
           >
             <Link href="/">
               <Logo />
             </Link>
 
-            <nav style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
+            <nav style={{ marginLeft: "auto", display: "flex", gap: 10 }}>
               <Link href="/discover" className="btn">
                 Discover
               </Link>
-
               <Link href="/scan" className="btn">
                 Scan
               </Link>
@@ -56,8 +53,6 @@ export default async function RootLayout({
                   <Link href="/dashboard" className="btn">
                     Dashboard
                   </Link>
-
-                  {/* LOGOUT FORM */}
                   <form action="/auth/signout" method="post">
                     <button className="btn btn-primary">Logout</button>
                   </form>
@@ -71,11 +66,7 @@ export default async function RootLayout({
           </div>
         </header>
 
-        {/* MAIN CONTENT */}
-        <main
-          className="container"
-          style={{ paddingTop: 24, paddingBottom: 24 }}
-        >
+        <main className="container" style={{ paddingTop: 24 }}>
           {children}
         </main>
       </body>

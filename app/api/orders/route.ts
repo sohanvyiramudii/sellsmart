@@ -1,32 +1,20 @@
-import { routeSupabase } from "@/lib/supabaseServer";
+import { NextResponse, NextRequest } from "next/server";
+import { createClient } from "@supabase/supabase-js";
 
-export async function POST(req: Request) {
-  const r = routeSupabase();
-  const { data: { user } } = await r.auth.getUser();
+export async function POST(req: NextRequest) {
+  const URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+  const ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
-  if (!user) {
-    return Response.json({ error: "Not authenticated" }, { status: 401 });
-  }
-
+  const supabase = createClient(URL, ANON);
   const body = await req.json();
-  const { creatorId, items } = body;
 
-  const total = items.reduce((t: number, item: any) => t + (item.price || 0), 0);
-
-  const { data, error } = await r
+  const { data, error } = await supabase
     .from("orders")
-    .insert({
-      creator_id: creatorId,
-      user_id: user.id,
-      items,
-      total
-    })
+    .insert(body)
     .select()
     .single();
 
-  if (error) {
-    return Response.json({ error: error.message }, { status: 400 });
-  }
+  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
 
-  return Response.json({ success: true, order: data });
+  return NextResponse.json(data);
 }

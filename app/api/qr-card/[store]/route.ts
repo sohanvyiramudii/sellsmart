@@ -10,38 +10,35 @@ export async function GET(
     const origin =
       process.env.NEXT_PUBLIC_SITE_URL || new URL(req.url).origin;
 
-    const storeUsername = params.store;
-    const url = `${origin}/@${storeUsername}`;
+    const slug = params.store;
+    const url = `${origin}/store/${slug}`;
 
-    const qrBuffer = await QRCode.toBuffer(url, {
+    const qrPng = await QRCode.toBuffer(url, {
       margin: 1,
       width: 300,
-      color: { dark: "#000", light: "#fff" },
     });
 
-    const pdfDoc = await PDFDocument.create();
-    const page = pdfDoc.addPage([500, 700]);
-
-    const font = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-    const qrImage = await pdfDoc.embedPng(qrBuffer);
+    const pdf = await PDFDocument.create();
+    const page = pdf.addPage([500, 700]);
+    const font = await pdf.embedFont(StandardFonts.HelveticaBold);
 
     page.drawText("Store QR Code", { x: 160, y: 640, size: 22, font });
+    page.drawText(`@${slug}`, { x: 200, y: 610, size: 16, font });
+
+    const qrImage = await pdf.embedPng(qrPng);
     page.drawImage(qrImage, { x: 100, y: 260, width: 300, height: 300 });
 
-    const pdfBytes = await pdfDoc.save();
+    page.drawText(url, { x: 100, y: 230, size: 12, font });
 
-    return new NextResponse(
-      new Blob([pdfBytes], { type: "application/pdf" }),
-      {
-        status: 200,
-        headers: {
-          "Content-Type": "application/pdf",
-          "Content-Disposition": `attachment; filename="${storeUsername}-qr.pdf"`,
-        },
-      }
-    );
-  } catch (err: any) {
-    console.error(err);
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    const pdfBytes = await pdf.save();
+
+    return new NextResponse(new Blob([pdfBytes], { type: "application/pdf" }), {
+      status: 200,
+      headers: {
+        "Content-Disposition": `attachment; filename="${slug}-qr.pdf"`,
+      },
+    });
+  } catch (e: any) {
+    return NextResponse.json({ error: e.message }, { status: 500 });
   }
 }
