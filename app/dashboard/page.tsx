@@ -3,9 +3,10 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 
 export default function Dashboard() {
-  const [user, setUser] = useState(null);
-  const [creator, setCreator] = useState(null);
-  const [products, setProducts] = useState([]);
+  const [user, setUser] = useState<any>(null);
+  const [creator, setCreator] = useState<any>(null);
+  const [products, setProducts] = useState<any[]>([]);
+
   const [form, setForm] = useState({
     name: "",
     store_slug: "",
@@ -24,9 +25,15 @@ export default function Dashboard() {
     image_url: "",
   });
 
+  // ───────────────────────────────────────────────
+  // LOAD USER + CREATOR + PRODUCTS
+  // ───────────────────────────────────────────────
   useEffect(() => {
-    supabase.auth.getUser().then(async ({ data }) => {
+    async function loadData() {
+      const { data } = await supabase.auth.getUser();
+
       setUser(data.user);
+
       if (!data.user) return;
 
       // Load creator profile
@@ -36,10 +43,10 @@ export default function Dashboard() {
         .eq("owner_id", data.user.id)
         .limit(1);
 
-      let cr = c?.[0];
+      let creatorProfile = c?.[0];
 
-      // If creator profile doesn't exist, create one
-      if (!cr) {
+      // If creator doesn't exist → create it
+      if (!creatorProfile) {
         await supabase.from("creators").insert({
           name: "My Store",
           store_slug: "store-" + Date.now(),
@@ -52,26 +59,32 @@ export default function Dashboard() {
           .select("*")
           .eq("owner_id", data.user.id)
           .limit(1);
-        cr = c2?.[0];
+
+        creatorProfile = c2?.[0];
       }
 
-      setCreator(cr);
-      setForm({ ...form, ...cr });
+      setCreator(creatorProfile);
+      setForm((prev) => ({ ...prev, ...creatorProfile }));
 
       // Load products
       const { data: ps } = await supabase
         .from("products")
         .select("*")
-        .eq("creator_id", cr.id)
+        .eq("creator_id", creatorProfile.id)
         .order("created_at", { ascending: false });
 
       setProducts(ps || []);
-    });
+    }
+
+    loadData();
   }, []);
 
-  // Save store settings
+  // ───────────────────────────────────────────────
+  // SAVE STORE SETTINGS
+  // ───────────────────────────────────────────────
   async function saveStore() {
     if (!creator) return;
+
     const { error } = await supabase
       .from("creators")
       .update(form)
@@ -81,25 +94,31 @@ export default function Dashboard() {
     alert("Saved ✓");
   }
 
-  // Upload images (profile / banner)
-  async function uploadFile(file, bucket, setField) {
+  // ───────────────────────────────────────────────
+  // FILE UPLOAD HELPER
+  // ───────────────────────────────────────────────
+  async function uploadFile(file: File, bucket: string, field: string) {
     const path = `${creator.id}/${Date.now()}_${file.name}`;
-    const { error } = await supabase.storage.from(bucket).upload(path, file);
-    if (error) return alert(error.message);
+
+    const { error: uploadError } = await supabase.storage
+      .from(bucket)
+      .upload(path, file);
+
+    if (uploadError) return alert(uploadError.message);
 
     const { data } = supabase.storage.from(bucket).getPublicUrl(path);
-    setForm({ ...form, [setField]: data.publicUrl });
+
+    setForm((prev) => ({ ...prev, [field]: data.publicUrl }));
   }
 
-  // ⭐⭐ FINAL FIXED ADD PRODUCT ⭐⭐
+  // ───────────────────────────────────────────────
+  // ADD PRODUCT
+  // ───────────────────────────────────────────────
   async function addProduct() {
-    const userData = await supabase.auth.getUser();
-    const user_id = userData.data.user?.id;
+    const { data: userData } = await supabase.auth.getUser();
+    const user_id = userData.user?.id;
 
-    if (!user_id) {
-      alert("User not logged in!");
-      return;
-    }
+    if (!user_id) return alert("User not logged in!");
 
     const payload = {
       name: p.name,
@@ -107,7 +126,7 @@ export default function Dashboard() {
       category: p.category,
       image_url: p.image_url,
       creator_id: creator.id,
-      user_id: user_id, // ⭐ REQUIRED FIX
+      user_id: user_id,
     };
 
     const { data, error } = await supabase
@@ -118,18 +137,30 @@ export default function Dashboard() {
 
     if (error) return alert(error.message);
 
-    setProducts([data, ...products]);
+    setProducts((prev) => [data, ...prev]);
     setP({ name: "", price: "", category: "", image_url: "" });
+
     alert("Product Added ✓");
   }
 
-  async function delProduct(id) {
+  // ───────────────────────────────────────────────
+  // DELETE PRODUCT
+  // ───────────────────────────────────────────────
+  async function delProduct(id: string) {
     await supabase.from("products").delete().eq("id", id);
-    setProducts(products.filter((x) => x.id !== id));
+    setProducts((prev) => prev.filter((x) => x.id !== id));
   }
 
-  if (!user) return <div>Please <a href="/auth/login">login</a></div>;
+  if (!user)
+    return (
+      <div>
+        Please <a href="/auth/login">login</a>
+      </div>
+    );
 
+  // ───────────────────────────────────────────────
+  // UI RENDER
+  // ───────────────────────────────────────────────
   return (
     <div style={{ display: "grid", gap: 16 }}>
       {/* STORE SETTINGS */}
@@ -137,20 +168,15 @@ export default function Dashboard() {
         <div style={{ display: "flex", justifyContent: "space-between" }}>
           <div>
             <h2 style={{ fontSize: 20, fontWeight: 800 }}>Store Settings</h2>
-            <small>
-              {creator?.is_active ? "Active ✓" : "Pending approval"}
-            </small>
+            <small>{creator?.is_active ? "Active ✓" : "Pending approval"}</small>
           </div>
 
-          <a
-            href={"/@" + creator?.store_slug}
-            target="_blank"
-            className="btn"
-          >
+          <a href={"/@" + creator?.store_slug} target="_blank" className="btn">
             View Store →
           </a>
         </div>
 
+        {/* FORM */}
         <div
           style={{
             display: "grid",
@@ -161,38 +187,39 @@ export default function Dashboard() {
         >
           <input
             placeholder="Name"
-            value={form.name || ""}
+            value={form.name}
             onChange={(e) => setForm({ ...form, name: e.target.value })}
             style={{ padding: 8 }}
           />
           <input
             placeholder="Store Slug"
-            value={form.store_slug || ""}
+            value={form.store_slug}
             onChange={(e) => setForm({ ...form, store_slug: e.target.value })}
             style={{ padding: 8 }}
           />
+
           <input
             placeholder="Location"
-            value={form.location || ""}
+            value={form.location}
             onChange={(e) => setForm({ ...form, location: e.target.value })}
             style={{ padding: 8 }}
           />
           <input
             placeholder="WhatsApp"
-            value={form.whatsapp || ""}
+            value={form.whatsapp}
             onChange={(e) => setForm({ ...form, whatsapp: e.target.value })}
             style={{ padding: 8 }}
           />
 
           <textarea
             placeholder="Bio"
-            value={form.bio || ""}
+            value={form.bio}
             onChange={(e) => setForm({ ...form, bio: e.target.value })}
             style={{ padding: 8, gridColumn: "1 / -1" }}
           />
         </div>
 
-        {/* IMAGE UPLOADS */}
+        {/* IMAGE UPLOAD SECTION */}
         <div
           style={{
             display: "grid",
@@ -201,6 +228,7 @@ export default function Dashboard() {
             marginTop: 12,
           }}
         >
+          {/* Profile */}
           <div>
             <label>Profile Image</label>
             <input
@@ -212,6 +240,7 @@ export default function Dashboard() {
             />
           </div>
 
+          {/* Banner */}
           <div>
             <label>Banner Image</label>
             <input
@@ -233,7 +262,7 @@ export default function Dashboard() {
         </button>
       </div>
 
-      {/* PRODUCTS */}
+      {/* PRODUCTS SECTION */}
       <div className="card" style={{ padding: 16 }}>
         <div
           style={{
@@ -267,12 +296,14 @@ export default function Dashboard() {
             onChange={(e) => setP({ ...p, name: e.target.value })}
             style={{ padding: 8 }}
           />
+
           <input
             placeholder="Price"
             value={p.price}
             onChange={(e) => setP({ ...p, price: e.target.value })}
             style={{ padding: 8 }}
           />
+
           <input
             placeholder="Category"
             value={p.category}
@@ -287,6 +318,7 @@ export default function Dashboard() {
               if (!f) return;
 
               const path = `${creator.id}/${Date.now()}_${f.name}`;
+
               const { error } = await supabase.storage
                 .from("product-images")
                 .upload(path, f);
