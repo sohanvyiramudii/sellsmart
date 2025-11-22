@@ -1,24 +1,47 @@
+import { NextRequest, NextResponse } from "next/server";
+import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
+import QRCode from "qrcode";
 
-import QRCode from 'qrcode';
-import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
+export async function GET(
+  req: NextRequest,
+  { params }: { params: { store: string } }
+) {
+  try {
+    const origin =
+      process.env.NEXT_PUBLIC_SITE_URL || new URL(req.url).origin;
 
-export async function GET(req, { params }) {
-  const origin = process.env.NEXT_PUBLIC_SITE_URL || new URL(req.url).origin;
-  const url = `${origin}/@${params.store}`;
+    const storeUsername = params.store;
+    const url = `${origin}/@${storeUsername}`;
 
-  const dataUrl = await QRCode.toDataURL(url, { margin:1, width:700 });
+    const qrBuffer = await QRCode.toBuffer(url, {
+      margin: 1,
+      width: 300,
+      color: { dark: "#000", light: "#fff" },
+    });
 
-  const pdf = await PDFDocument.create();
-  const page = pdf.addPage([595, 842]); // A4
+    const pdfDoc = await PDFDocument.create();
+    const page = pdfDoc.addPage([500, 700]);
 
-  const font = await pdf.embedFont(StandardFonts.HelveticaBold);
-  const pngBytes = Buffer.from(dataUrl.split(',')[1],'base64');
-  const img = await pdf.embedPng(pngBytes);
+    const font = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+    const qrImage = await pdfDoc.embedPng(qrBuffer);
 
-  page.drawText("SellSmart", { x:60, y:780, size:28, font, color:rgb(0.54,0.40,0.93) });
-  page.drawImage(img, { x:60, y:300, width:475, height:475 });
+    page.drawText("Store QR Code", { x: 160, y: 640, size: 22, font });
+    page.drawImage(qrImage, { x: 100, y: 260, width: 300, height: 300 });
 
-  const bytes = await pdf.save();
+    const pdfBytes = await pdfDoc.save();
 
-  return new Response(bytes, { headers: { "Content-Type":"application/pdf" } });
+    return new NextResponse(
+      new Blob([pdfBytes], { type: "application/pdf" }),
+      {
+        status: 200,
+        headers: {
+          "Content-Type": "application/pdf",
+          "Content-Disposition": `attachment; filename="${storeUsername}-qr.pdf"`,
+        },
+      }
+    );
+  } catch (err: any) {
+    console.error(err);
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
 }
