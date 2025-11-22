@@ -6,18 +6,17 @@ export async function GET(
   { params }: { params: { store: string } }
 ) {
   try {
-    // 1. Get the store URL
     const origin = process.env.NEXT_PUBLIC_SITE_URL || new URL(req.url).origin;
     const storeUrl = `${origin}/@${params.store}`;
     const storeName = params.store;
 
-    // 2. Create a new PDF Document
+    // Create PDF
     const pdfDoc = await PDFDocument.create();
-    const page = pdfDoc.addPage([600, 400]); // Card size
+    const page = pdfDoc.addPage([600, 400]);
     const { width, height } = page.getSize();
     const font = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
-    // 3. Draw Text (Store Name)
+    // Draw Store Name
     page.drawText(`Store: ${storeName}`, {
       x: 50,
       y: height - 100,
@@ -26,19 +25,17 @@ export async function GET(
       color: rgb(0, 0, 0),
     });
 
-    // 4. Draw Text (URL)
+    // Draw URL
     page.drawText(storeUrl, {
       x: 50,
       y: height - 150,
       size: 18,
       font: font,
-      color: rgb(0, 0, 1), // Blue color for link
+      color: rgb(0, 0, 1),
     });
 
-    // 5. Save the PDF
     const pdfBytes = await pdfDoc.save();
 
-    // 6. Return the PDF
     return new NextResponse(pdfBytes, {
       status: 200,
       headers: { 
