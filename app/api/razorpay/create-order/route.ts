@@ -1,3 +1,4 @@
+// Fixing build error
 import { NextRequest, NextResponse } from 'next/server';
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 
